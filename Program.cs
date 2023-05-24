@@ -12,21 +12,6 @@ static class Program {
     static bool MatchFound = false;
     static ulong Counter = 0;
 
-    class ImageForm : Form {
-        public ImageForm(Bitmap bitmap) {
-            ClientSize = bitmap.Size;
-            FormBorderStyle = FormBorderStyle.FixedToolWindow;
-            BackgroundImage = bitmap;
-
-            int attribute = 1;
-            DwmSetWindowAttribute(Handle, 20, ref attribute, Marshal.SizeOf<int>());
-        }
-
-        public ImageForm(Bitmap bitmap, Point topLeft, Point bottomRight) : this(bitmap) {
-            Text = $"({topLeft.X} : {topLeft.Y}) - ({bottomRight.X} : {bottomRight.Y})";
-        }
-    }
-
     class SelectorForm : Form {
         public SelectorForm() {
             ClientSize = new(320, 321);
@@ -54,15 +39,24 @@ static class Program {
                             run = false;
                         });
                         await Task.Run(() => {
-                            HashSet<Point> whitePixels = new();
+                            Point[] whitePixels = { };
+                            bool hasred = false;
                             while (run) {
                                 using (Bitmap bitmap = Invoke<Bitmap>(() => {
                                     Text = $"({Counter++}) Use this to select the correct area!";
                                     return TakeScreenshot();
                                 })) {
-                                    foreach (Point p in CollectPixels(bitmap, 0x00ffffff))
-                                        whitePixels.Add(p);
-                                    MatchFound = CollectPixels(bitmap, 0x00ff0000).Intersect(whitePixels).Any();
+
+                                    if (!hasred && bitmap.ContainsColor(0x00ff0000)) {
+                                        whitePixels = bitmap.CollectPixels(0x00ffffff).ToArray();
+                                        hasred = true;
+                                    }
+
+                                    if (hasred) {
+
+                                        MatchFound = CollectPixels(bitmap, 0x00ff0000).Intersect(whitePixels).Any();
+                                        Invoke(() => Refresh());
+                                    }
                                 }
                             }
                         });
@@ -105,11 +99,19 @@ static class Program {
     [DllImport("user32.dll")]
     extern static int GetAsyncKeyState(int keycode);
 
-    static IEnumerable<Point> CollectPixels(Bitmap bitmap, int rgb) {
+    static IEnumerable<Point> CollectPixels(this Bitmap bitmap, int rgb) {
         for (int y = 0; y < bitmap.Height; y++)
             for (int x = 0; x < bitmap.Width; x++)
                 if ((bitmap.GetPixel(x, y).ToArgb() & 0x00ffffff) == rgb)
                     yield return new(x, y);
+    }
+
+    static bool ContainsColor(this Bitmap bitmap, int rgb) {
+        for (int y = 0; y < bitmap.Height; y++)
+            for (int x = 0; x < bitmap.Width; x++)
+                if ((bitmap.GetPixel(x, y).ToArgb() & 0x00ffffff) == rgb)
+                    return true;
+        return false;
     }
 
     [STAThread]
