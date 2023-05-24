@@ -35,6 +35,7 @@ static class Program {
             ResizeRedraw = true;
             StartPosition = FormStartPosition.CenterScreen;
             Text = "(0) Use this to select the correct area!";
+            TopMost = true;
             TransparencyKey = Color.Blue;
 
             int attribute = 1;
@@ -59,7 +60,6 @@ static class Program {
                                     Text = $"({Counter++}) Use this to select the correct area!";
                                     return TakeScreenshot();
                                 })) {
-                                    FilterBitmap(bitmap);
                                     foreach (Point p in CollectPixels(bitmap, 0x00ffffff))
                                         whitePixels.Add(p);
                                     MatchFound = CollectPixels(bitmap, 0x00ff0000).Intersect(whitePixels).Any();
@@ -73,7 +73,7 @@ static class Program {
 
             Task.Run(async () => {
                 while (true) {
-                    if (GetAsyncKeyState(0x77) == 0x8000) { // F8
+                    if (GetAsyncKeyState(0x78) == 0x8000) { // F9
                         Invoke(() => Visible = !Visible);
                         await Task.Delay(100);
                     }
@@ -95,7 +95,6 @@ static class Program {
                     Point.Empty,
                     bm.Size,
                     CopyPixelOperation.SourceCopy); // CopyPixelOperation.CaptureBlt
-            FilterBitmap(bm);
             return bm;
         }
     }
@@ -105,15 +104,6 @@ static class Program {
 
     [DllImport("user32.dll")]
     extern static int GetAsyncKeyState(int keycode);
-
-    static void FilterBitmap(Bitmap bitmap) {
-        for (int y = 0; y < bitmap.Height; y++)
-            for (int x = 0; x < bitmap.Width; x++) {
-                int rgb = bitmap.GetPixel(x, y).ToArgb() & 0x00ffffff;
-                if (rgb != 0x00ff0000 && rgb != 0x00ffffff)
-                    bitmap.SetPixel(x, y, Color.Black);
-            }
-    }
 
     static IEnumerable<Point> CollectPixels(Bitmap bitmap, int rgb) {
         for (int y = 0; y < bitmap.Height; y++)
