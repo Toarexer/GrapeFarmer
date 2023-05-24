@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -32,6 +34,7 @@ static class Program {
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             ResizeRedraw = true;
             StartPosition = FormStartPosition.CenterScreen;
+            Text = "(0) Use this to select the correct area!";
             TransparencyKey = Color.Blue;
 
             int attribute = 1;
@@ -43,17 +46,26 @@ static class Program {
         protected virtual void RunTasks() {
             Task.Run(async () => {
                 while (true) {
-                    if (GetAsyncKeyState(0x20) == 0x8000) {
-                        Invoke(() => {
-                            Bitmap bitmap = TakeScreenshot();
-                            Point topLeft = PointToScreen(new(1, 2));
-                            new ImageForm(bitmap, topLeft, new Point(topLeft.X + bitmap.Width, topLeft.Y + bitmap.Height)).ShowDialog();
+                    if (GetAsyncKeyState(0x45) == 0x8000) { // E
+                        bool run = true;
+                        _ = Task.Run(async () => {
+                            await Task.Delay(5000);
+                            run = false;
                         });
-                        await Task.Delay(200);
-                    }
-                    if (GetAsyncKeyState(0x77) == 0x8000) {
-                        Invoke(() => Visible = !Visible);
-                        await Task.Delay(100);
+                        await Task.Run(() => {
+                            HashSet<Point> whitePixels = new();
+                            while (run) {
+                                using (Bitmap bitmap = Invoke<Bitmap>(() => {
+                                    Text = $"({Counter++}) Use this to select the correct area!";
+                                    return TakeScreenshot();
+                                })) {
+                                    FilterBitmap(bitmap);
+                                    foreach (Point p in CollectPixels(bitmap, 0x00ffffff))
+                                        whitePixels.Add(p);
+                                    MatchFound = CollectPixels(bitmap, 0x00ff0000).Intersect(whitePixels).Any();
+                                }
+                            }
+                        });
                     }
                     await Task.Delay(10);
                 }
@@ -61,8 +73,11 @@ static class Program {
 
             Task.Run(async () => {
                 while (true) {
-                    Invoke(() => Text = $"({Counter++}) Use this to select the correct area!");
-                    await Task.Delay(100);
+                    if (GetAsyncKeyState(0x77) == 0x8000) { // F8
+                        Invoke(() => Visible = !Visible);
+                        await Task.Delay(100);
+                    }
+                    await Task.Delay(10);
                 }
             });
         }
@@ -85,60 +100,6 @@ static class Program {
         }
     }
 
-    class FilterForm : SelectorForm {
-        public class ImageBoxForm : Form {
-            Bitmap FilteredBitmap;
-
-            public ImageBoxForm() {
-                DoubleBuffered = true;
-                FilteredBitmap = new(ClientSize.Width, ClientSize.Height);
-                FormBorderStyle = FormBorderStyle.None;
-                Icon = SystemIcons.Information;
-                TopMost = true;
-                SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
-            }
-
-            public void Update(Bitmap bitmap) {
-                ClientSize = bitmap.Size;
-                FilteredBitmap = bitmap;
-                Refresh();
-            }
-
-            protected override void OnPaintBackground(PaintEventArgs e) {
-                e.Graphics.FillRectangle(Brushes.Blue, ClientRectangle);
-                e.Graphics.DrawImage(FilteredBitmap, Point.Empty);
-            }
-        }
-
-        ImageBoxForm ImageBox = new();
-
-        public FilterForm() {
-            TopMost = true;
-            Move += (object? sender, EventArgs e) => {
-                Text = $"({DesktopLocation.X} : {DesktopLocation.Y}) - ({DesktopLocation.X + Width} : {DesktopLocation.Y + Height})";
-                if (!ImageBox.IsDisposed)
-                    ImageBox.SetDesktopLocation(DesktopLocation.X + Width + 8, DesktopLocation.Y);
-            };
-            Shown += (object? sender, EventArgs e) => OnMove(new());
-            ImageBox.Show();
-        }
-
-        protected override void RunTasks() {
-            Task.Run(async () => {
-                while (true) {
-                    Invoke(() => {
-                        if (!ImageBox.IsDisposed) {
-                            Bitmap bitmap = TakeScreenshot();
-                            Point topLeft = PointToScreen(new(1, 2));
-                            ImageBox.Update(bitmap);
-                        }
-                    });
-                    await Task.Delay(1);
-                }
-            });
-        }
-    }
-
     [DllImport("dwmapi.dll")]
     static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
 
@@ -154,17 +115,16 @@ static class Program {
             }
     }
 
-    static bool IsRedOnWhite(Bitmap bitmap) {
-        return false;
-    }
-
-    static bool FindInBitmap(Bitmap bitmap) {
-        return false;
+    static IEnumerable<Point> CollectPixels(Bitmap bitmap, int rgb) {
+        for (int y = 0; y < bitmap.Height; y++)
+            for (int x = 0; x < bitmap.Width; x++)
+                if ((bitmap.GetPixel(x, y).ToArgb() & 0x00ffffff) == rgb)
+                    yield return new(x, y);
     }
 
     [STAThread]
     static void Main() {
         ApplicationConfiguration.Initialize();
-        Application.Run(new FilterForm());
+        Application.Run(new SelectorForm());
     }
 }
