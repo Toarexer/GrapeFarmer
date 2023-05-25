@@ -36,6 +36,7 @@ static class Program {
                 while (true) {
                     if (RunCheck) {
                         InvokeSetText(0);
+                        // The 'E' input does not work with GTA for some reason.
                         // Input.PressKey(Input.VirtualKey.VK_E);
                         bool run = true;
 
@@ -82,15 +83,6 @@ static class Program {
                         await Task.Delay(100);
                     }
                     await Task.Delay(10);
-                }
-            });
-
-            // Temporary solution! When timing is figured it will be removed!
-            Task.Run(async () => {
-                while (true) {
-                    if (RunCheck)
-                        Input.PressKey(Input.VirtualKey.VK_E);
-                    await Task.Delay(1000);
                 }
             });
         }
