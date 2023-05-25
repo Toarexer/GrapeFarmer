@@ -8,9 +8,4 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="images\correct\" />
-    <Folder Include="images\incorrect\" />
-  </ItemGroup>
-
 </Project>

@@ -36,7 +36,7 @@ static class Program {
                 while (true) {
                     if (RunCheck) {
                         InvokeSetText(0);
-                        Input.PressKey(Input.VirtualKey.VK_E);
+                        // Input.PressKey(Input.VirtualKey.VK_E);
                         bool run = true;
 
                         Task timeout = Task.Run(async () => {
@@ -84,6 +84,15 @@ static class Program {
                     await Task.Delay(10);
                 }
             });
+
+            // Temporary solution! When timing is figured it will be removed!
+            Task.Run(async () => {
+                while (true) {
+                    if (RunCheck)
+                        Input.PressKey(Input.VirtualKey.VK_E);
+                    await Task.Delay(1000);
+                }
+            });
         }
 
         void InvokeSetText(int counter) => Invoke(() => Text = $"({Counter = counter}) Use this to select the correct area!");
@@ -100,16 +109,13 @@ static class Program {
                     PointToScreen(new(1, 2)),
                     Point.Empty,
                     bm.Size,
-                    CopyPixelOperation.SourceCopy); // CopyPixelOperation.CaptureBlt
+                    CopyPixelOperation.SourceCopy);
             return bm;
         }
     }
 
     [DllImport("dwmapi.dll")]
     static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
-
-    [DllImport("user32.dll")]
-    extern static int GetAsyncKeyState(int keycode);
 
     static IEnumerable<Point> CollectPixels(this Bitmap bitmap, int rgb) {
         for (int y = 0; y < bitmap.Height; y++)
