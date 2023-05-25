@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace WinUser;
 
 public static class Input {
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct Mouse {
         public int dx;
         public int dy;

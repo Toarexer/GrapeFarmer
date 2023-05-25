@@ -26,7 +26,7 @@ static class Program {
             TransparencyKey = Color.Blue;
 
             int attribute = 1;
-            DwmSetWindowAttribute(Handle, 20, ref attribute, Marshal.SizeOf<int>());
+            DwmSetWindowAttribute(Handle, 20, ref attribute, sizeof(int));
 
             Shown += (object? sender, EventArgs e) => RunTasks();
         }
@@ -34,10 +34,8 @@ static class Program {
         protected virtual void RunTasks() {
             Task.Run(async () => {
                 while (true) {
-                    if (RunCheck) {
+                    if (Input.IsKeyPressed(Input.VirtualKey.VK_E)) {
                         InvokeSetText(0);
-                        // The 'E' input does not work with GTA for some reason.
-                        // Input.PressKey(Input.VirtualKey.VK_E);
                         bool run = true;
 
                         Task timeout = Task.Run(async () => {
