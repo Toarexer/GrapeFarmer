@@ -5,14 +5,16 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WinUser;
 
 namespace GrapeFarmer;
 
 static class Program {
-    static bool MatchFound = false;
-    static ulong Counter = 0;
+    static bool RunCheck = false;
+    static int Counter = 0;
 
     class SelectorForm : Form {
+
         public SelectorForm() {
             ClientSize = new(320, 321);
             FormBorderStyle = FormBorderStyle.SizableToolWindow;
@@ -32,18 +34,23 @@ static class Program {
         protected virtual void RunTasks() {
             Task.Run(async () => {
                 while (true) {
-                    if (GetAsyncKeyState(0x45) == 0x8000) { // E
+                    if (RunCheck) {
+                        InvokeSetText(0);
+                        Input.PressKey(Input.VirtualKey.VK_E);
                         bool run = true;
-                        _ = Task.Run(async () => {
+
+                        Task timeout = Task.Run(async () => {
                             await Task.Delay(5000);
                             run = false;
                         });
+
                         await Task.Run(() => {
                             Point[] whitePixels = { };
                             bool hasred = false;
+
                             while (run) {
                                 using (Bitmap bitmap = Invoke<Bitmap>(() => {
-                                    Text = $"({Counter++}) Use this to select the correct area!";
+                                    InvokeSetText(++Counter);
                                     return TakeScreenshot();
                                 })) {
 
@@ -52,14 +59,14 @@ static class Program {
                                         hasred = true;
                                     }
 
-                                    if (hasred) {
-
-                                        MatchFound = CollectPixels(bitmap, 0x00ff0000).Intersect(whitePixels).Any();
-                                        Invoke(() => Refresh());
+                                    if (hasred && bitmap.CollectPixels(0x00ff0000).Intersect(whitePixels).Any()) {
+                                        run = false;
+                                        Input.PressKey(Input.VirtualKey.VK_SPACE);
                                     }
                                 }
                             }
                         });
+                        await timeout;
                     }
                     await Task.Delay(10);
                 }
@@ -67,7 +74,10 @@ static class Program {
 
             Task.Run(async () => {
                 while (true) {
-                    if (GetAsyncKeyState(0x78) == 0x8000) { // F9
+                    if (Input.IsKeyPressed(Input.VirtualKey.VK_F9)) {
+                        RunCheck = !RunCheck;
+                        await Task.Delay(100);
+                    } else if (Input.IsKeyPressed(Input.VirtualKey.VK_F12)) {
                         Invoke(() => Visible = !Visible);
                         await Task.Delay(100);
                     }
@@ -76,9 +86,11 @@ static class Program {
             });
         }
 
+        void InvokeSetText(int counter) => Invoke(() => Text = $"({Counter = counter}) Use this to select the correct area!");
+
         protected override void OnPaintBackground(PaintEventArgs e) {
             e.Graphics.FillRectangle(Brushes.Blue, ClientRectangle);
-            e.Graphics.DrawRectangle(MatchFound ? Pens.Green : Pens.Red, 0, 1, ClientSize.Width - 1, ClientSize.Height - 2);
+            e.Graphics.DrawRectangle(Pens.Red, 0, 1, ClientSize.Width - 1, ClientSize.Height - 2);
         }
 
         protected Bitmap TakeScreenshot() {
