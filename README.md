@@ -1,6 +1,6 @@
 # GrapeFarmer
 
-Szöllő farmoló segédprogram a HoltPont RP FiveM szerverhez.\
+Szőlő farmoló segédprogram a HoltPont RP FiveM szerverhez.\
 Grape farming utility for the HoltPont RP FiveM server.
 
 ## Billentyű parancsok/Hotkeys
