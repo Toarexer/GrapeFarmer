@@ -10,6 +10,8 @@ using WinUser;
 namespace GrapeFarmer;
 
 static class Program {
+    static Input.VirtualKey EnableDisableKey = Input.VirtualKey.VK_F9;
+    static Input.VirtualKey HideShowKey = Input.VirtualKey.VK_F12;
     static bool RunCheck = false;
     static int Counter = 0;
 
@@ -34,9 +36,13 @@ static class Program {
         protected virtual void RunTasks() {
             Task.Run(async () => {
                 while (true) {
-                    if (Input.IsKeyPressed(Input.VirtualKey.VK_E)) {
+                    if (RunCheck) {
                         InvokeSetText(0);
                         bool run = true;
+
+                        Input.SetKeyDown(Input.VirtualKey.VK_E);
+                        await Task.Delay(10);
+                        Input.SetKeyUp(Input.VirtualKey.VK_E);
 
                         Task timeout = Task.Run(async () => {
                             await Task.Delay(5000);
@@ -47,7 +53,7 @@ static class Program {
                             Point[] whitePixels = { };
                             bool hasred = false;
 
-                            while (run) {
+                            while (run && RunCheck) {
                                 using (Bitmap bitmap = Invoke<Bitmap>(() => {
                                     InvokeSetText(++Counter);
                                     return TakeScreenshot();
@@ -73,10 +79,11 @@ static class Program {
 
             Task.Run(async () => {
                 while (true) {
-                    if (Input.IsKeyPressed(Input.VirtualKey.VK_F9)) {
+                    if (Input.IsKeyPressed(EnableDisableKey)) {
                         RunCheck = !RunCheck;
+                        Invoke(() => Refresh());
                         await Task.Delay(100);
-                    } else if (Input.IsKeyPressed(Input.VirtualKey.VK_F12)) {
+                    } else if (Input.IsKeyPressed(HideShowKey)) {
                         Invoke(() => Visible = !Visible);
                         await Task.Delay(100);
                     }
@@ -89,7 +96,7 @@ static class Program {
 
         protected override void OnPaintBackground(PaintEventArgs e) {
             e.Graphics.FillRectangle(Brushes.Blue, ClientRectangle);
-            e.Graphics.DrawRectangle(Pens.Red, 0, 1, ClientSize.Width - 1, ClientSize.Height - 2);
+            e.Graphics.DrawRectangle(RunCheck ? Pens.LimeGreen : Pens.Red, 0, 1, ClientSize.Width - 1, ClientSize.Height - 2);
         }
 
         protected Bitmap TakeScreenshot() {
