@@ -11,7 +11,7 @@ namespace GrapeFarmer;
 
 static class Program {
     static Input.VirtualKey EnableDisableKey = Input.VirtualKey.VK_F9;
-    static Input.VirtualKey HideShowKey = Input.VirtualKey.VK_F12;
+    static Input.VirtualKey ShowHideKey = Input.VirtualKey.VK_F12;
     static bool RunCheck = false;
     static int Counter = 0;
 
@@ -26,6 +26,16 @@ static class Program {
             Text = "(0) Use this to select the correct area!";
             TopMost = true;
             TransparencyKey = Color.Blue;
+
+            NotifyIcon notifyIcon = new() { ContextMenuStrip = new(), Icon = Icon, Visible = true };
+            notifyIcon.ContextMenuStrip.Items.Add(
+                "Set Keybinds",
+                GetIcon(Environment.SystemDirectory + "\\wmploc.dll", 17).ToBitmapOrEmpty(),
+                (object? sender, EventArgs e) => SwapToSelectKeysForm());
+            notifyIcon.ContextMenuStrip.Items.Add(
+                "Exit",
+                GetIcon(Environment.SystemDirectory + "\\shell32.dll", 131).ToBitmapOrEmpty(),
+                (object? sender, EventArgs e) => Application.Exit());
 
             int attribute = 1;
             DwmSetWindowAttribute(Handle, 20, ref attribute, sizeof(int));
@@ -83,7 +93,7 @@ static class Program {
                         RunCheck = !RunCheck;
                         Invoke(() => Refresh());
                         await Task.Delay(100);
-                    } else if (Input.IsKeyPressed(HideShowKey)) {
+                    } else if (Input.IsKeyPressed(ShowHideKey)) {
                         Invoke(() => Visible = !Visible);
                         await Task.Delay(100);
                     }
@@ -109,10 +119,84 @@ static class Program {
                     CopyPixelOperation.SourceCopy);
             return bm;
         }
+
+        protected void SwapToSelectKeysForm() {
+            bool run = RunCheck;
+            bool visible = Visible;
+            RunCheck = false;
+            Visible = false;
+            Refresh();
+            new SelectKeysForm() { Icon = Icon }.ShowDialog();
+            RunCheck = run;
+            if (!IsDisposed)
+                Visible = visible;
+        }
+    }
+
+    class SelectKeysForm : Form {
+        public SelectKeysForm() {
+            ClientSize = new(408, 120);
+            FormBorderStyle = FormBorderStyle.FixedToolWindow;
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "Keybind Selector";
+
+            AutoCompleteStringCollection ac = new();
+
+            ComboBox cb1 = new() { Location = new(140, 8), Width = 256, AutoCompleteSource = AutoCompleteSource.CustomSource, AutoCompleteCustomSource = ac, DropDownHeight = 300 };
+            ComboBox cb2 = new() { Location = new(140, 40), Width = 256, AutoCompleteSource = AutoCompleteSource.CustomSource, AutoCompleteCustomSource = ac, DropDownHeight = 300 };
+            cb1.SelectedValueChanged += (object? sender, EventArgs e) => SetIfKeyIsCorrect(cb1);
+            cb2.SelectedValueChanged += (object? sender, EventArgs e) => SetIfKeyIsCorrect(cb2);
+
+            foreach (string name in Enum.GetNames<Input.VirtualKey>().Select(x => x.Remove(0, 3))) {
+                ac.Add(name);
+                cb1.Items.Add(name);
+                cb2.Items.Add(name);
+            }
+            SetSelectedItem(cb1, EnableDisableKey);
+            SetSelectedItem(cb2, ShowHideKey);
+
+            Button btn = new() { Location = new(10, 80), Size = new(387, 28), Text = "Set Keys" };
+            btn.Click += (object? sender, EventArgs e) => {
+                Input.VirtualKey k;
+                if (Enum.TryParse<Input.VirtualKey>("VK_" + cb1.Text, true, out k))
+                    EnableDisableKey = k;
+                if (Enum.TryParse<Input.VirtualKey>("VK_" + cb2.Text, true, out k))
+                    ShowHideKey = k;
+                Close();
+            };
+
+            Controls.Add(new Label() { Location = new(8, 12), Width = 128, Text = "Enable/Disable" });
+            Controls.Add(new Label() { Location = new(8, 44), Width = 128, Text = "Show/Hide" });
+            Controls.Add(cb2);
+            Controls.Add(cb1);
+            Controls.Add(cb2);
+            Controls.Add(btn);
+
+            int attribute = 1;
+            DwmSetWindowAttribute(Handle, 20, ref attribute, sizeof(int));
+        }
+
+        void SetSelectedItem(ComboBox cb, Input.VirtualKey key) {
+            foreach (string item in cb.Items) {
+                if (item == Enum.GetName(key)?.Remove(0, 3)) {
+                    cb.SelectedItem = item;
+                    return;
+                }
+            }
+        }
+
+        void SetIfKeyIsCorrect(ComboBox cb) {
+            Input.VirtualKey k;
+            if (!Enum.TryParse<Input.VirtualKey>("VK_" + cb.SelectedItem, true, out k))
+                cb.SelectedItem = null;
+        }
     }
 
     [DllImport("dwmapi.dll")]
     static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("shell32.dll")]
+    public static extern int ExtractIconEx(string file, int iconIndex, out IntPtr large, out IntPtr small, int iconsCount);
 
     static IEnumerable<Point> CollectPixels(this Bitmap bitmap, int rgb) {
         for (int y = 0; y < bitmap.Height; y++)
@@ -128,6 +212,14 @@ static class Program {
                     return true;
         return false;
     }
+
+    static Icon? GetIcon(string path, int index) {
+        IntPtr small, large;
+        ExtractIconEx(path, index, out large, out small, 1);
+        return Icon.FromHandle(large) ?? Icon.FromHandle(small);
+    }
+
+    static Bitmap ToBitmapOrEmpty(this Icon? icon) => icon is null ? new(0, 0) : icon.ToBitmap();
 
     [STAThread]
     static void Main() {
