@@ -3,10 +3,26 @@
 Szőlő farmoló segédprogram a HoltPont RP FiveM szerverhez.\
 Grape farming utility for the HoltPont RP FiveM server.
 
-Használja az ablak keretét az ellenőrizni kívánt terület meghatározására.\
-Use the border of the window to select the area to be checked.
+A program működése:
+1. Lenyomja az `E` betűt.
+2. Megvárja amíg a kilyelölt helyen van piros `#FF0000` pixel.
+3. Összegyűjti mely pozíciókban van fehér `#FFFFFF` pixel.
+4. Innentől kezdve azt figyeli, hogy az összegyűjtött fehér pixelek közül bármelyik pirossáv változott-e.
+5. Ha igen, akkor lenyomja a szóközt és a ciklus újraindul.
+> Egy ilyen ciklus maximum ~5 másodpercig tarhat. Ha lejár az idő újraindul.
 
-## Billentyű parancsok/Hotkeys
+How the program works:
+1. It presses the `E` key.
+2. It waits until it finds a red `#FF0000` pixel.
+3. It collects all white `#FFFFFF` pixel.
+4. After that it checks if any of the white pixels tunred to red.
+5. If yes then it presses the `Spacebar` then restarts the loop.
+> If the loop does not complete in ~5 seconds it restarts.
+
+Az ellenőrizni kívánt terület az ablak keretével határozható meg.\
+The area to be checked can be selected with the window border.
+
+## Billentyű parancsok/Keybinds
 
 F9  - Ki/Be kapcsolás (Enable/Disable)\
 F12 - Ablak előhozása/eltűntetése (Hide/Show Window)
