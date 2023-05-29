@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -162,6 +163,7 @@ static class Program {
                     EnableDisableKey = k;
                 if (Enum.TryParse<Input.VirtualKey>("VK_" + cb2.Text, true, out k))
                     ShowHideKey = k;
+                SaveKeybinds(true);
                 Close();
             };
 
@@ -221,8 +223,35 @@ static class Program {
 
     static Bitmap ToBitmapOrEmpty(this Icon? icon) => icon is null ? new(0, 0) : icon.ToBitmap();
 
+    static void SaveKeybinds(bool overwrite) {
+        string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\GrapeFarmer";
+        if (!Directory.Exists(appdata))
+            Directory.CreateDirectory(appdata);
+        string settings = appdata + "\\settings.csv";
+        if (overwrite || !File.Exists(settings))
+            File.WriteAllText(settings, $"1,{EnableDisableKey},{ShowHideKey}");
+    }
+
     [STAThread]
     static void Main() {
+        SaveKeybinds(false);
+        string file = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\GrapeFarmer\\settings.csv";
+        string[] settings = File.ReadAllText(file).Split(',');
+
+        try {
+            if (settings.Length < 3)
+                throw new FileFormatException();
+            int ver = int.Parse(settings[0]);
+            Input.VirtualKey edk = Enum.Parse<Input.VirtualKey>(settings[1]);
+            Input.VirtualKey shk = Enum.Parse<Input.VirtualKey>(settings[2]);
+
+            EnableDisableKey = edk;
+            ShowHideKey = shk;
+        } catch {
+            if (MessageBox.Show("Incorrect settings file format!\nDo you want to reset it?", file, MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes)
+                SaveKeybinds(true);
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new SelectorForm());
     }
