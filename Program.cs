@@ -34,6 +34,10 @@ static class Program {
                 GetIcon(Environment.SystemDirectory + "\\wmploc.dll", 17).ToBitmapOrEmpty(),
                 (object? sender, EventArgs e) => SwapToSelectKeysForm());
             notifyIcon.ContextMenuStrip.Items.Add(
+                "Delete Settings File",
+                GetIcon(Environment.SystemDirectory + "\\shell32.dll", 32).ToBitmapOrEmpty(),
+                (object? sender, EventArgs e) => DeleteSettings());
+            notifyIcon.ContextMenuStrip.Items.Add(
                 "Exit",
                 GetIcon(Environment.SystemDirectory + "\\shell32.dll", 131).ToBitmapOrEmpty(),
                 (object? sender, EventArgs e) => Application.Exit());
@@ -230,6 +234,12 @@ static class Program {
         string settings = appdata + "\\settings.csv";
         if (overwrite || !File.Exists(settings))
             File.WriteAllText(settings, $"1,{EnableDisableKey},{ShowHideKey}");
+    }
+
+    static void DeleteSettings() {
+        string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\GrapeFarmer";
+        if (Directory.Exists(appdata))
+            Directory.Delete(appdata, true);
     }
 
     [STAThread]
